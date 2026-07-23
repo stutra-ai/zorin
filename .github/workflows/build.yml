@@ -31,16 +31,15 @@ jobs:
 
       - name: Checkout builds
         uses: actions/checkout@v4
-        continue-on-error: true # Allow checkout to fail if branch doesn't exist yet
+        continue-on-error: true
         with:
           ref: "builds"
           path: "builds"
 
-      # If the checkout failed because the branch doesn't exist, create an empty directory and init it
       - name: Initialize builds branch if missing
         run: |
           if [ ! -d "$GITHUB_WORKSPACE/builds/.git" ]; then
-            echo "Creating initial 'builds' orphan directory..."
+            echo "Creating initial 'builds' directory and git repo..."
             mkdir -p $GITHUB_WORKSPACE/builds
             cd $GITHUB_WORKSPACE/builds
             git init
@@ -55,7 +54,14 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Gradle Wrapper
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          gradle wrapper
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
