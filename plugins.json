@@ -10,7 +10,7 @@
             "ByAyzen"
         ],
         "description": "JavGuru",
-        "fileSize": 72431,
+        "fileSize": 73376,
         "repositoryUrl": "https://github.com/stutra-ai/zorin",
         "language": "en",
         "tvTypes": [
@@ -18,7 +18,7 @@
         ],
         "iconUrl": "https://www.google.com/s2/favicons?domain=jav.guru&sz=%size%",
         "apiVersion": 1,
-        "fileHash": "sha256-2ddc50dc2a227c915a6cf69dbe9ac9322f9d7e93422f08dca980a4758090cb3a"
+        "fileHash": "sha256-f55c04e68265d3621ac4af078b55eadd76594dfd2fb78293dcac9a92ee591149"
     },
     {
         "url": "https://raw.githubusercontent.com/stutra-ai/zorin/builds/SexTB.cs3",
@@ -30,7 +30,7 @@
             "ByAyzen"
         ],
         "description": "The Best Free JAV online, JAV DVD online, Stream JAV Online High Quality always updated daily.",
-        "fileSize": 68336,
+        "fileSize": 68778,
         "repositoryUrl": "https://github.com/stutra-ai/zorin",
         "language": "jp",
         "tvTypes": [
@@ -38,6 +38,6 @@
         ],
         "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://sextb.net/&size=128",
         "apiVersion": 1,
-        "fileHash": "sha256-0eac7f31af711f1fafcfc0a878c101ca2252dcf5fc033ba88e4f393a3ac6313c"
+        "fileHash": "sha256-eb74d2dd46caaeb896cc93d36d721847049cf6acc90a842c5fba737e6e5a3d5d"
     }
 ]
