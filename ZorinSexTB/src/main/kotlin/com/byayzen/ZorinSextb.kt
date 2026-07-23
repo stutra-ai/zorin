@@ -16,7 +16,7 @@ import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.fixUrlNull
 import org.jsoup.nodes.Element
 
-class Sextb : MainAPI() {
+class ZorinSextb : MainAPI() {
     override var mainUrl = "https://sextb.net"
     override var name = "ZorinSexTB"
     override val hasMainPage = true

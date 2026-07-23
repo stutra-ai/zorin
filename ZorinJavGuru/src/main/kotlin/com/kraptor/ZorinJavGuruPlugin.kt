@@ -1,16 +1,18 @@
 // ! Bu araç @Kraptor123 tarafından | @Cs-GizliKeyif için yazılmıştır.
-package com.byayzen
+package com.kraptor
 
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
-import com.lagradost.cloudstream3.plugins.Plugin
-import android.content.Context
-import com.lagradost.cloudstream3.extractors.*
+import com.lagradost.cloudstream3.extractors.EmturbovidExtractor
 import com.lagradost.cloudstream3.extractors.FileMoonSx
+import com.lagradost.cloudstream3.extractors.StreamTape
+import com.lagradost.cloudstream3.extractors.VidStack
+import com.lagradost.cloudstream3.extractors.Voe
+import com.lagradost.cloudstream3.plugins.BasePlugin
 
 @CloudstreamPlugin
-class SextbPlugin: Plugin() {
-    override fun load(context: Context) {
-        registerMainAPI(Sextb())
+class ZorinJavGuruPlugin: BasePlugin() {
+    override fun load() {
+        registerMainAPI(ZorinJavGuru())
         registerExtractorAPI(StreamTape())
         registerExtractorAPI(StreamTapeNet())
         registerExtractorAPI(StreamTapeXyz())
@@ -43,7 +45,7 @@ class SextbPlugin: Plugin() {
         registerExtractorAPI(swhoi())
         registerExtractorAPI(Javmoon())
         registerExtractorAPI(MixDropis())
-        //   registerExtractorAPI(Javclan())
+        registerExtractorAPI(Javclan())
         registerExtractorAPI(Maxstream())
         registerExtractorAPI(Javggvideo())
         registerExtractorAPI(EmturbovidExtractor())
