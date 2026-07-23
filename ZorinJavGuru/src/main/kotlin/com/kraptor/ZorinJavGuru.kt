@@ -175,32 +175,40 @@ class ZorinJavGuru : MainAPI() {
         val yearText = document.selectFirst("div.infometa li:contains(Release Date)")?.ownText()
             ?.substringBefore("-")?.toIntOrNull()
 
-        // Extract native recommendations from the current page content directly
-        val directRecommendations = document.select(".related-posts li, .jp-relatedposts-post, div.inside-article, article")
+        // 1. Direct page recommendations
+        val directRecommendations = document.select(".related-posts li, .jp-relatedposts-post, div.tabcontent li")
             .mapNotNull { it.toSearchResponse() }
 
-        // Extract all video tags and tag URLs
+        // 2. Extract tags & categories, filter out broad/generic items to prevent repetitive items
         val tagElements = document.select("li.w1 a[rel=tag], div.infometa a[href*=/tag/], div.infometa a[href*=/category/]")
         val tags = tagElements.mapNotNull { it.text().trim().ifBlank { null } }.distinct()
-        val tagUrls = tagElements.mapNotNull { fixUrlNull(it.attr("href")) }.distinct()
+        
+        val ignoreList = listOf("jav-uncensored", "english-subbed", "uncensored", "censored")
+        val tagUrls = tagElements
+            .mapNotNull { fixUrlNull(it.attr("href")) }
+            .filter { tagUrl -> ignoreList.none { tagUrl.lowercase().contains(it) } }
+            .distinct()
 
-        // Fetch recommendations directly from all associated video tags
+        // 3. Randomize tag processing order and take up to 3 specific tags per video
         val tagRecommendations = mutableListOf<SearchResponse>()
-        for (tagUrl in tagUrls) {
+        val selectedTags = tagUrls.shuffled().take(3)
+
+        for (tagUrl in selectedTags) {
             try {
                 val tagDoc = app.get(tagUrl, headers = mainHeaders).document
                 val items = tagDoc.select("div.inside-article, article, div.tabcontent li, .item-list li")
                     .mapNotNull { it.toSearchResponse() }
-                tagRecommendations.addAll(items)
+                tagRecommendations.addAll(items.shuffled()) // Shuffle items within the tag page
             } catch (e: Exception) {
                 Log.d("kraptor_$name", "Failed to fetch recommendations for tag: $tagUrl")
             }
         }
 
-        // Combine direct recommendations and tag-based recommendations without duplicates
+        // Combine direct and tag-based recommendations, deduplicate by URL, and shuffle overall
         val recommendations = (directRecommendations + tagRecommendations)
             .filter { it.url != url }
             .distinctBy { it.url }
+            .shuffled()
 
         val actors = document.select("li.w1 strong:not(:contains(tags)) ~ a").mapNotNull { Actor(it.text()) }
 
