@@ -125,17 +125,25 @@ class ZorinJavGuru : MainAPI() {
     }
 
     private fun Element.toSearchResponse(): SearchResponse? {
-        val linkElement = this.selectFirst("div.imgg a, h2 a, a")
-        val href = fixUrlNull(linkElement?.attr("href")) ?: return null
+        // Target only valid post links, avoiding general metadata/author/tag links
+        val linkElement = this.selectFirst("div.imgg a, h2.entry-title a, h2 a") ?: return null
+        val href = fixUrlNull(linkElement.attr("href")) ?: return null
+
+        // Prevent selecting non-post URLs
+        if (href.contains("/category/") || href.contains("/tag/") || href.contains("/actor/") || href.contains("/page/")) {
+            return null
+        }
 
         val imgElement = this.selectFirst("img")
         val title = imgElement?.attr("alt")?.trim()?.ifBlank { null }
-            ?: linkElement?.attr("title")?.trim()?.ifBlank { null }
-            ?: linkElement?.text()?.trim()?.ifBlank { null }
+            ?: linkElement.attr("title").trim().ifBlank { null }
+            ?: linkElement.text().trim().ifBlank { null }
             ?: this.selectFirst("h2")?.text()?.trim()
             ?: return null
 
-        if (title.contains("Advanced search", ignoreCase = true)) return null
+        if (title.contains("Advanced search", ignoreCase = true) || title.equals("Unknown", ignoreCase = true)) {
+            return null
+        }
 
         val posterUrl = imgElement?.getImageUrl()
 
@@ -175,21 +183,25 @@ class ZorinJavGuru : MainAPI() {
         val yearText = document.selectFirst("div.infometa li:contains(Release Date)")?.ownText()
             ?.substringBefore("-")?.toIntOrNull()
 
-        // 1. Direct page recommendations
+        // Extract site's built-in related posts
         val directRecommendations = document.select(".related-posts li, .jp-relatedposts-post, div.tabcontent li")
             .mapNotNull { it.toSearchResponse() }
 
-        // 2. Extract tags & categories, filter out broad/generic items to prevent repetitive items
-        val tagElements = document.select("li.w1 a[rel=tag], div.infometa a[href*=/tag/], div.infometa a[href*=/category/]")
+        // Extract tags and filter out broad/common categories that cause repetitive results
+        val tagElements = document.select("li.w1 a[rel=tag], div.infometa a[href*=/tag/]")
         val tags = tagElements.mapNotNull { it.text().trim().ifBlank { null } }.distinct()
-        
-        val ignoreList = listOf("jav-uncensored", "english-subbed", "uncensored", "censored")
+
+        val broadTagsToIgnore = listOf(
+            "jav-uncensored", "english-subbed", "uncensored", "censored",
+            "amateur", "idol", "back", "hd", "720p", "1080p", "4k"
+        )
+
         val tagUrls = tagElements
             .mapNotNull { fixUrlNull(it.attr("href")) }
-            .filter { tagUrl -> ignoreList.none { tagUrl.lowercase().contains(it) } }
+            .filter { tagUrl -> broadTagsToIgnore.none { tagUrl.lowercase().contains(it) } }
             .distinct()
 
-        // 3. Randomize tag processing order and take up to 3 specific tags per video
+        // Take up to 3 random specific tags for unique recommendations
         val tagRecommendations = mutableListOf<SearchResponse>()
         val selectedTags = tagUrls.shuffled().take(3)
 
@@ -198,13 +210,13 @@ class ZorinJavGuru : MainAPI() {
                 val tagDoc = app.get(tagUrl, headers = mainHeaders).document
                 val items = tagDoc.select("div.inside-article, article, div.tabcontent li, .item-list li")
                     .mapNotNull { it.toSearchResponse() }
-                tagRecommendations.addAll(items.shuffled()) // Shuffle items within the tag page
+                tagRecommendations.addAll(items)
             } catch (e: Exception) {
                 Log.d("kraptor_$name", "Failed to fetch recommendations for tag: $tagUrl")
             }
         }
 
-        // Combine direct and tag-based recommendations, deduplicate by URL, and shuffle overall
+        // Merge recommendations, deduplicate by URL, and shuffle for dynamic ordering
         val recommendations = (directRecommendations + tagRecommendations)
             .filter { it.url != url }
             .distinctBy { it.url }
