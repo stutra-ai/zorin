@@ -104,7 +104,8 @@ class JavGuru : MainAPI() {
 
     private fun Element.toSearchResponse(): SearchResponse? {
         val linkElement = this.selectFirst("div.imgg a, h2 a, a")
-        val href = this@JavGuru.fixUrlNull(linkElement?.attr("href")) ?: return null
+        val rawHref = linkElement?.attr("href")
+        val href = fixUrlNull(rawHref) ?: return null
 
         val imgElement = this.selectFirst("img")
         val title = imgElement?.attr("alt")?.trim()?.ifBlank { null }
@@ -115,12 +116,12 @@ class JavGuru : MainAPI() {
 
         if (title.contains("Advanced search", ignoreCase = true)) return null
 
-        val posterUrl = this@JavGuru.fixUrlNull(
-            imgElement?.attr("data-src")
-                ?: imgElement?.attr("data-lazy-src")
-                ?: imgElement?.attr("lazy-src")
-                ?: imgElement?.attr("src")
-        )
+        val rawPoster = imgElement?.attr("data-src")
+            ?: imgElement?.attr("data-lazy-src")
+            ?: imgElement?.attr("lazy-src")
+            ?: imgElement?.attr("src")
+
+        val posterUrl = fixUrlNull(rawPoster)
 
         return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
