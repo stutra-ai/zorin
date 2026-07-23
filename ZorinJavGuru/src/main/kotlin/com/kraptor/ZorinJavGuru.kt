@@ -54,8 +54,9 @@ class ZorinJavGuru : MainAPI() {
         "$mainUrl/category/jav-uncensored" to "Uncensored",
         "$mainUrl/category/amateur" to "Amateur",
         "$mainUrl/category/idol" to "Idol",
-        "$mainUrl/category/english-subbed" to "English Subbed",
         "$mainUrl/category/back" to "Back",
+        "$mainUrl/category/english-subbed" to "English Subbed",
+        "$mainUrl/tag/bitch" to "Bitch",
         "$mainUrl/tag/married-woman" to "Married",
         "$mainUrl/tag/mature-woman" to "Mature",
         "$mainUrl/tag/big-tits" to "Big Tits",
@@ -174,9 +175,32 @@ class ZorinJavGuru : MainAPI() {
         val yearText = document.selectFirst("div.infometa li:contains(Release Date)")?.ownText()
             ?.substringBefore("-")?.toIntOrNull()
 
-        val tags = document.select("li.w1 a[rel=tag]").mapNotNull { it.text().trim().ifBlank { null } }
+        // Extract native recommendations from the current page content directly
+        val directRecommendations = document.select(".related-posts li, .jp-relatedposts-post, div.inside-article, article")
+            .mapNotNull { it.toSearchResponse() }
 
-        val recommendations = document.select("li").mapNotNull { it.toRecommendationResult() }
+        // Extract all video tags and tag URLs
+        val tagElements = document.select("li.w1 a[rel=tag], div.infometa a[href*=/tag/], div.infometa a[href*=/category/]")
+        val tags = tagElements.mapNotNull { it.text().trim().ifBlank { null } }.distinct()
+        val tagUrls = tagElements.mapNotNull { fixUrlNull(it.attr("href")) }.distinct()
+
+        // Fetch recommendations directly from all associated video tags
+        val tagRecommendations = mutableListOf<SearchResponse>()
+        for (tagUrl in tagUrls) {
+            try {
+                val tagDoc = app.get(tagUrl, headers = mainHeaders).document
+                val items = tagDoc.select("div.inside-article, article, div.tabcontent li, .item-list li")
+                    .mapNotNull { it.toSearchResponse() }
+                tagRecommendations.addAll(items)
+            } catch (e: Exception) {
+                Log.d("kraptor_$name", "Failed to fetch recommendations for tag: $tagUrl")
+            }
+        }
+
+        // Combine direct recommendations and tag-based recommendations without duplicates
+        val recommendations = (directRecommendations + tagRecommendations)
+            .filter { it.url != url }
+            .distinctBy { it.url }
 
         val actors = document.select("li.w1 strong:not(:contains(tags)) ~ a").mapNotNull { Actor(it.text()) }
 
@@ -188,20 +212,6 @@ class ZorinJavGuru : MainAPI() {
             this.tags = tags
             this.recommendations = recommendations
             addActors(actors)
-        }
-    }
-
-    private fun Element.toRecommendationResult(): SearchResponse? {
-        val imgElement = this.selectFirst("a img")
-        val title = imgElement?.attr("alt")?.trim()
-        if (title.isNullOrBlank()) return null
-
-        val href = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = imgElement.getImageUrl()
-
-        return newMovieSearchResponse(title, href, TvType.NSFW) {
-            this.posterUrl = posterUrl
-            this.posterHeaders = mainHeaders
         }
     }
 
