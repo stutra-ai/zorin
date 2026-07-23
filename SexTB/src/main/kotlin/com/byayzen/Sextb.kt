@@ -18,7 +18,7 @@ import org.jsoup.nodes.Element
 
 class Sextb : MainAPI() {
     override var mainUrl = "https://sextb.net"
-    override var name = "SexTB"
+    override var name = "ZorinSexTB"
     override val hasMainPage = true
     override var lang = "en"
     override val hasQuickSearch = false
@@ -41,19 +41,19 @@ class Sextb : MainAPI() {
         "${mainUrl}/genre/beautiful-girl" to "Beautiful Girl",
         "${mainUrl}/genre/beautiful-pussy" to "Beautiful Pussy",
         "${mainUrl}/genre/big-asses" to "Big Asses",
-        //"${mainUrl}/genre/big-tits" to "Big Tits",
-      //"${mainUrl}/genre/blowjob" to "Blowjob",
-      //"${mainUrl}/genre/bondage" to "Bondage",
-      //"${mainUrl}/genre/bukkake" to "Bukkake",
-      //"${mainUrl}/genre/cheating-wife" to "Cheating Wife",
-      //"${mainUrl}/genre/cosplay" to "Cosplay",
-      //"${mainUrl}/genre/creampie" to "Creampie",
-      //"${mainUrl}/genre/cumshot" to "Cumshot",
-      //"${mainUrl}/genre/deep-throat" to "Deep Throat",
-      //"${mainUrl}/genre/doggy-style" to "Doggy Style",
-      //"${mainUrl}/genre/drama" to "Drama",
-      //"${mainUrl}/genre/facials" to "Facials",
-      //"${mainUrl}/genre/featured-actress" to "Featured Actress"
+        "${mainUrl}/genre/big-tits" to "Big Tits",
+        "${mainUrl}/genre/bondage" to "Bondage",
+        "${mainUrl}/genre/blowjob" to "Blowjob",
+        "${mainUrl}/genre/bukkake" to "Bukkake",
+        "${mainUrl}/genre/cheating-wife" to "Cheating Wife",
+        "${mainUrl}/genre/cosplay" to "Cosplay",
+        "${mainUrl}/genre/creampie" to "Creampie",
+        "${mainUrl}/genre/cumshot" to "Cumshot",
+        "${mainUrl}/genre/deep-throat" to "Deep Throat",
+        "${mainUrl}/genre/doggy-style" to "Doggy Style",
+        "${mainUrl}/genre/drama" to "Drama",
+        "${mainUrl}/genre/facials" to "Facials",
+        "${mainUrl}/genre/featured-actress" to "Featured Actress"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {

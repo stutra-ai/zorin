@@ -14,7 +14,7 @@ import org.jsoup.Jsoup
 
 class JavGuru : MainAPI() {
     override var mainUrl = "https://jav.guru"
-    override var name = "JavGuru"
+    override var name = "ZorinJavGuru"
     override val hasMainPage = true
     override var lang = "en"
     override val hasQuickSearch = false
@@ -39,6 +39,7 @@ class JavGuru : MainAPI() {
         "$mainUrl/category/amateur" to "Amateur",
         "$mainUrl/category/idol" to "Idol",
         "$mainUrl/category/english-subbed" to "English Subbed",
+        "$mainUrl/tag/back" to "Back"
         "$mainUrl/tag/married-woman" to "Married",
         "$mainUrl/tag/mature-woman" to "Mature",
         "$mainUrl/tag/big-tits" to "Big Tits",
