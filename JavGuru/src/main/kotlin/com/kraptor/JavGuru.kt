@@ -79,7 +79,11 @@ class JavGuru : MainAPI() {
 
     private fun fixUrlNull(url: String?): String? {
         if (url.isNullOrBlank()) return null
-        return fixUrl(url)
+        return when {
+            url.startsWith("http://") || url.startsWith("https://") -> url
+            url.startsWith("//") -> "https:$url"
+            else -> "$mainUrl/${url.removePrefix("/")}"
+        }
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
