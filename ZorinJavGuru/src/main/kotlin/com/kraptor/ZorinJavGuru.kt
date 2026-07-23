@@ -86,6 +86,18 @@ class ZorinJavGuru : MainAPI() {
         }
     }
 
+    private fun Element.getImageUrl(): String? {
+        val candidates = listOf(
+            this.attr("data-src"),
+            this.attr("data-lazy-src"),
+            this.attr("data-original"),
+            this.attr("lazy-src"),
+            this.attr("src")
+        )
+        val validUrl = candidates.firstOrNull { it.isNotBlank() && !it.startsWith("data:") }
+        return fixUrlNull(validUrl)
+    }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = if (page == 1) {
             "${request.data}/"
@@ -124,12 +136,7 @@ class ZorinJavGuru : MainAPI() {
 
         if (title.contains("Advanced search", ignoreCase = true)) return null
 
-        val posterUrl = fixUrlNull(
-            imgElement?.attr("data-src")
-                ?: imgElement?.attr("data-lazy-src")
-                ?: imgElement?.attr("lazy-src")
-                ?: imgElement?.attr("src")
-        )
+        val posterUrl = imgElement?.getImageUrl()
 
         return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
@@ -158,7 +165,8 @@ class ZorinJavGuru : MainAPI() {
             ?: document.selectFirst("h1")?.text()?.trim()
             ?: "Unknown"
 
-        val poster = fixUrlNull(document.selectFirst("div.large-screenshot img")?.attr("src"))
+        val posterImg = document.selectFirst("div.large-screenshot img, div.wp-content img, article img")
+        val poster = posterImg?.getImageUrl()
 
         val description = document.select("div.wp-content p:not(:has(img))").joinToString(" ") { it.text() }
             .ifBlank { "Japonları Seviyoruz..." }
