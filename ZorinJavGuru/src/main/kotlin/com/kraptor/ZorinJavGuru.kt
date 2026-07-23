@@ -28,7 +28,7 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
-class JavGuru : MainAPI() {
+class ZorinJavGuru : MainAPI() {
     override var mainUrl = "https://jav.guru"
     override var name = "ZorinJavGuru"
     override val hasMainPage = true
