@@ -23,8 +23,8 @@ import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newSearchResponseList
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 
@@ -55,7 +55,7 @@ class ZorinJavGuru : MainAPI() {
         "$mainUrl/category/amateur" to "Amateur",
         "$mainUrl/category/idol" to "Idol",
         "$mainUrl/category/english-subbed" to "English Subbed",
-        "$mainUrl/tag/back" to "Back",
+        "$mainUrl/category/back" to "Back",
         "$mainUrl/tag/married-woman" to "Married",
         "$mainUrl/tag/mature-woman" to "Mature",
         "$mainUrl/tag/big-tits" to "Big Tits",
@@ -174,27 +174,9 @@ class ZorinJavGuru : MainAPI() {
         val yearText = document.selectFirst("div.infometa li:contains(Release Date)")?.ownText()
             ?.substringBefore("-")?.toIntOrNull()
 
-        // Extract all video tags and tag URLs
-        val tagElements = document.select("li.w1 a[rel=tag]")
-        val tags = tagElements.mapNotNull { it.text().trim().ifBlank { null } }
-        val tagUrls = tagElements.mapNotNull { fixUrlNull(it.attr("href")) }
+        val tags = document.select("li.w1 a[rel=tag]").mapNotNull { it.text().trim().ifBlank { null } }
 
-        // Fetch recommendations entirely from all associated video tags
-        val tagRecommendations = mutableListOf<SearchResponse>()
-        for (tagUrl in tagUrls) {
-            try {
-                val tagDoc = app.get(tagUrl, headers = mainHeaders).document
-                val items = tagDoc.select("div.inside-article, article, div.tabcontent li")
-                    .mapNotNull { it.toSearchResponse() }
-                tagRecommendations.addAll(items)
-            } catch (e: Exception) {
-                Log.d("kraptor_$name", "Failed to fetch recommendations for tag: $tagUrl")
-            }
-        }
-
-        val recommendations = tagRecommendations
-            .filter { it.url != url }
-            .distinctBy { it.url }
+        val recommendations = document.select("li").mapNotNull { it.toRecommendationResult() }
 
         val actors = document.select("li.w1 strong:not(:contains(tags)) ~ a").mapNotNull { Actor(it.text()) }
 
@@ -206,6 +188,20 @@ class ZorinJavGuru : MainAPI() {
             this.tags = tags
             this.recommendations = recommendations
             addActors(actors)
+        }
+    }
+
+    private fun Element.toRecommendationResult(): SearchResponse? {
+        val imgElement = this.selectFirst("a img")
+        val title = imgElement?.attr("alt")?.trim()
+        if (title.isNullOrBlank()) return null
+
+        val href = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
+        val posterUrl = imgElement.getImageUrl()
+
+        return newMovieSearchResponse(title, href, TvType.NSFW) {
+            this.posterUrl = posterUrl
+            this.posterHeaders = mainHeaders
         }
     }
 
@@ -285,14 +281,14 @@ class ZorinJavGuru : MainAPI() {
                     if (hlsFound != null && !processedUrls.contains(hlsFound)) {
                         processedUrls.add(hlsFound)
                         callback.invoke(
-                            ExtractorLink(
+                            newExtractorLink(
                                 source = "$name $sourceName",
                                 name = sourceName,
                                 url = hlsFound,
-                                referer = "$cleanBase/",
-                                quality = Qualities.Unknown.value,
                                 type = ExtractorLinkType.M3U8
-                            )
+                            ) {
+                                this.referer = "$cleanBase/"
+                            }
                         )
                     } else {
                         loadExtractor(location, data, subtitleCallback, callback)
