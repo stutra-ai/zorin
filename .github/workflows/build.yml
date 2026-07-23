@@ -15,7 +15,7 @@ on:
       - '.github/workflows/**'
       - 'repo.json'
       - 'DomainCheck.py'
-    workflow_dispatch:
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -31,9 +31,21 @@ jobs:
 
       - name: Checkout builds
         uses: actions/checkout@v4
+        continue-on-error: true # Allow checkout to fail if branch doesn't exist yet
         with:
           ref: "builds"
           path: "builds"
+
+      # If the checkout failed because the branch doesn't exist, create an empty directory and init it
+      - name: Initialize builds branch if missing
+        run: |
+          if [ ! -d "$GITHUB_WORKSPACE/builds/.git" ]; then
+            echo "Creating initial 'builds' orphan directory..."
+            mkdir -p $GITHUB_WORKSPACE/builds
+            cd $GITHUB_WORKSPACE/builds
+            git init
+            git checkout -b builds
+          fi
 
       - name: Clean old builds
         run: rm -f $GITHUB_WORKSPACE/builds/*.cs3
