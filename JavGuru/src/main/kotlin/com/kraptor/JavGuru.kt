@@ -17,14 +17,13 @@ import com.lagradost.cloudstream3.TvType
 import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.base64Decode
 import com.lagradost.cloudstream3.mainPageOf
-import com.lagradost.cloudstream3.newExtractorLink
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
 import com.lagradost.cloudstream3.newSearchResponseList
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.ExtractorLinkType
-import com.lagradost.cloudstream3.utils.fixUrlNull
+import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
@@ -105,7 +104,7 @@ class JavGuru : MainAPI() {
 
     private fun Element.toSearchResponse(): SearchResponse? {
         val linkElement = this.selectFirst("div.imgg a, h2 a, a")
-        val href = fixUrlNull(linkElement?.attr("href")) ?: return null
+        val href = this@JavGuru.fixUrlNull(linkElement?.attr("href")) ?: return null
 
         val imgElement = this.selectFirst("img")
         val title = imgElement?.attr("alt")?.trim()?.ifBlank { null }
@@ -116,7 +115,7 @@ class JavGuru : MainAPI() {
 
         if (title.contains("Advanced search", ignoreCase = true)) return null
 
-        val posterUrl = fixUrlNull(
+        val posterUrl = this@JavGuru.fixUrlNull(
             imgElement?.attr("data-src")
                 ?: imgElement?.attr("data-lazy-src")
                 ?: imgElement?.attr("lazy-src")
@@ -163,18 +162,22 @@ class JavGuru : MainAPI() {
         val tags = tagElements.mapNotNull { it.text().trim().ifBlank { null } }
         val tagUrls = tagElements.mapNotNull { fixUrlNull(it.attr("href")) }
 
-        // Fetch recommendations entirely from all associated video tags using toSearchResponse()
-        val recommendations = tagUrls.flatMap { tagUrl ->
+        // Fetch recommendations entirely from all associated video tags
+        val tagRecommendations = mutableListOf<SearchResponse>()
+        for (tagUrl in tagUrls) {
             try {
                 val tagDoc = app.get(tagUrl, headers = mainHeaders).document
-                tagDoc.select("div.inside-article, article, div.tabcontent li")
+                val items = tagDoc.select("div.inside-article, article, div.tabcontent li")
                     .mapNotNull { it.toSearchResponse() }
+                tagRecommendations.addAll(items)
             } catch (e: Exception) {
-                emptyList()
+                Log.d("kraptor_$name", "Failed to fetch recommendations for tag: $tagUrl")
             }
         }
-        .filter { it.url != url }
-        .distinctBy { it.url }
+
+        val recommendations = tagRecommendations
+            .filter { it.url != url }
+            .distinctBy { it.url }
 
         val actors = document.select("li.w1 strong:not(:contains(tags)) ~ a").mapNotNull { Actor(it.text()) }
 
@@ -265,14 +268,14 @@ class JavGuru : MainAPI() {
                     if (hlsFound != null && !processedUrls.contains(hlsFound)) {
                         processedUrls.add(hlsFound)
                         callback.invoke(
-                            newExtractorLink(
+                            ExtractorLink(
                                 source = "$name $sourceName",
                                 name = sourceName,
                                 url = hlsFound,
+                                referer = "$cleanBase/",
+                                quality = Qualities.Unknown.value,
                                 type = ExtractorLinkType.M3U8
-                            ) {
-                                this.referer = "$cleanBase/"
-                            }
+                            )
                         )
                     } else {
                         loadExtractor(location, data, subtitleCallback, callback)
