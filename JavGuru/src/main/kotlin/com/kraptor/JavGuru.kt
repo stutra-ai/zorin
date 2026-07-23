@@ -77,6 +77,11 @@ class JavGuru : MainAPI() {
         "$mainUrl/tag/underwear" to "Underwear"
     )
 
+    private fun fixUrlNull(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        return fixUrl(url)
+    }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = if (page == 1) {
             "${request.data}/"
@@ -104,8 +109,7 @@ class JavGuru : MainAPI() {
 
     private fun Element.toSearchResponse(): SearchResponse? {
         val linkElement = this.selectFirst("div.imgg a, h2 a, a")
-        val rawHref = linkElement?.attr("href")
-        val href = fixUrlNull(rawHref) ?: return null
+        val href = fixUrlNull(linkElement?.attr("href")) ?: return null
 
         val imgElement = this.selectFirst("img")
         val title = imgElement?.attr("alt")?.trim()?.ifBlank { null }
@@ -116,12 +120,12 @@ class JavGuru : MainAPI() {
 
         if (title.contains("Advanced search", ignoreCase = true)) return null
 
-        val rawPoster = imgElement?.attr("data-src")
-            ?: imgElement?.attr("data-lazy-src")
-            ?: imgElement?.attr("lazy-src")
-            ?: imgElement?.attr("src")
-
-        val posterUrl = fixUrlNull(rawPoster)
+        val posterUrl = fixUrlNull(
+            imgElement?.attr("data-src")
+                ?: imgElement?.attr("data-lazy-src")
+                ?: imgElement?.attr("lazy-src")
+                ?: imgElement?.attr("src")
+        )
 
         return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
