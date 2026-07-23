@@ -1,16 +1,16 @@
 [
     {
-        "url": "https://raw.githubusercontent.com/stutra-ai/zorin/builds/JavGuru.cs3",
+        "url": "https://raw.githubusercontent.com/stutra-ai/zorin/builds/ZorinJavGuru.cs3",
         "status": 1,
         "version": 16,
-        "name": "JavGuru",
-        "internalName": "JavGuru",
+        "name": "ZorinJavGuru",
+        "internalName": "ZorinJavGuru",
         "authors": [
             "kraptor",
             "ByAyzen"
         ],
         "description": "JavGuru",
-        "fileSize": 73376,
+        "fileSize": 73358,
         "repositoryUrl": "https://github.com/stutra-ai/zorin",
         "language": "en",
         "tvTypes": [
@@ -18,19 +18,19 @@
         ],
         "iconUrl": "https://www.google.com/s2/favicons?domain=jav.guru&sz=%size%",
         "apiVersion": 1,
-        "fileHash": "sha256-f55c04e68265d3621ac4af078b55eadd76594dfd2fb78293dcac9a92ee591149"
+        "fileHash": "sha256-9247dceb5b1bf398c72264cc53160f6b260d394ca5c102cfb17c72683a1f085c"
     },
     {
-        "url": "https://raw.githubusercontent.com/stutra-ai/zorin/builds/SexTB.cs3",
+        "url": "https://raw.githubusercontent.com/stutra-ai/zorin/builds/ZorinSexTB.cs3",
         "status": 1,
         "version": 12,
-        "name": "SexTB",
-        "internalName": "SexTB",
+        "name": "ZorinSexTB",
+        "internalName": "ZorinSexTB",
         "authors": [
             "ByAyzen"
         ],
         "description": "The Best Free JAV online, JAV DVD online, Stream JAV Online High Quality always updated daily.",
-        "fileSize": 68778,
+        "fileSize": 68639,
         "repositoryUrl": "https://github.com/stutra-ai/zorin",
         "language": "jp",
         "tvTypes": [
@@ -38,6 +38,6 @@
         ],
         "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://sextb.net/&size=128",
         "apiVersion": 1,
-        "fileHash": "sha256-eb74d2dd46caaeb896cc93d36d721847049cf6acc90a842c5fba737e6e5a3d5d"
+        "fileHash": "sha256-cf3fe1586ce2c8f3fc91849ab6b29a271e9044cc387606b54d9aceed0d3da062"
     }
 ]
