@@ -2,15 +2,32 @@
 
 package com.kraptor
 
-import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
-import org.jsoup.nodes.Element
-import kotlin.text.Regex
-import android.util.Base64
 import android.util.Log
+import com.lagradost.cloudstream3.Actor
+import com.lagradost.cloudstream3.HomePageList
+import com.lagradost.cloudstream3.HomePageResponse
+import com.lagradost.cloudstream3.LoadResponse
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.MainPageRequest
+import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.SearchResponseList
+import com.lagradost.cloudstream3.SubtitleFile
+import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.app
+import com.lagradost.cloudstream3.base64Decode
+import com.lagradost.cloudstream3.mainPageOf
+import com.lagradost.cloudstream3.newExtractorLink
+import com.lagradost.cloudstream3.newHomePageResponse
+import com.lagradost.cloudstream3.newMovieLoadResponse
+import com.lagradost.cloudstream3.newMovieSearchResponse
+import com.lagradost.cloudstream3.newSearchResponseList
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.ExtractorLinkType
+import com.lagradost.cloudstream3.utils.fixUrlNull
+import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
-
+import org.jsoup.nodes.Element
 
 class JavGuru : MainAPI() {
     override var mainUrl = "https://jav.guru"
@@ -39,7 +56,7 @@ class JavGuru : MainAPI() {
         "$mainUrl/category/amateur" to "Amateur",
         "$mainUrl/category/idol" to "Idol",
         "$mainUrl/category/english-subbed" to "English Subbed",
-        "$mainUrl/tag/back" to "Back"
+        "$mainUrl/tag/back" to "Back",
         "$mainUrl/tag/married-woman" to "Married",
         "$mainUrl/tag/mature-woman" to "Mature",
         "$mainUrl/tag/big-tits" to "Big Tits",
@@ -74,7 +91,6 @@ class JavGuru : MainAPI() {
         val items = document.select("div.inside-article, article, div.tabcontent li, .item-list li")
 
         val home = items.mapNotNull { it.toSearchResponse() }
-
         val hasNext = home.isNotEmpty()
 
         return newHomePageResponse(
@@ -100,7 +116,12 @@ class JavGuru : MainAPI() {
 
         if (title.contains("Advanced search", ignoreCase = true)) return null
 
-        val posterUrl = fixUrlNull(imgElement?.attr("src") ?: imgElement?.attr("data-src"))
+        val posterUrl = fixUrlNull(
+            imgElement?.attr("data-src")
+                ?: imgElement?.attr("data-lazy-src")
+                ?: imgElement?.attr("lazy-src")
+                ?: imgElement?.attr("src")
+        )
 
         return newMovieSearchResponse(title, href, TvType.NSFW) {
             this.posterUrl = posterUrl
@@ -120,7 +141,6 @@ class JavGuru : MainAPI() {
         return newSearchResponseList(results, hasNext = hasNext)
     }
 
-
     override suspend fun quickSearch(query: String): List<SearchResponse>? = search(query)
 
     override suspend fun load(url: String): LoadResponse {
@@ -132,20 +152,31 @@ class JavGuru : MainAPI() {
 
         val poster = fixUrlNull(document.selectFirst("div.large-screenshot img")?.attr("src"))
 
-        val description =
-            document.select("div.wp-content p:not(:has(img))").joinToString(" ") { it.text() }
-                .ifBlank { "Japonları Seviyoruz..." }
+        val description = document.select("div.wp-content p:not(:has(img))").joinToString(" ") { it.text() }
+            .ifBlank { "Japonları Seviyoruz..." }
 
         val yearText = document.selectFirst("div.infometa li:contains(Release Date)")?.ownText()
             ?.substringBefore("-")?.toIntOrNull()
 
+        // Extract all video tags and tag URLs
+        val tagElements = document.select("li.w1 a[rel=tag]")
+        val tags = tagElements.mapNotNull { it.text().trim().ifBlank { null } }
+        val tagUrls = tagElements.mapNotNull { fixUrlNull(it.attr("href")) }
 
-        val tags = document.select("li.w1 a[rel=tag]").mapNotNull { it.text().trim() }
+        // Fetch recommendations entirely from all associated video tags using toSearchResponse()
+        val recommendations = tagUrls.flatMap { tagUrl ->
+            try {
+                val tagDoc = app.get(tagUrl, headers = mainHeaders).document
+                tagDoc.select("div.inside-article, article, div.tabcontent li")
+                    .mapNotNull { it.toSearchResponse() }
+            } catch (e: Exception) {
+                emptyList()
+            }
+        }
+        .filter { it.url != url }
+        .distinctBy { it.url }
 
-        val recommendations = document.select("li").mapNotNull { it.toRecommendationResult() }
-
-        val actors =
-            document.select("li.w1 strong:not(:contains(tags)) ~ a").mapNotNull { Actor(it.text()) }
+        val actors = document.select("li.w1 strong:not(:contains(tags)) ~ a").mapNotNull { Actor(it.text()) }
 
         return newMovieLoadResponse(title, url, TvType.NSFW, url) {
             this.posterUrl = poster
@@ -155,19 +186,6 @@ class JavGuru : MainAPI() {
             this.tags = tags
             this.recommendations = recommendations
             addActors(actors)
-        }
-    }
-
-    private fun Element.toRecommendationResult(): SearchResponse? {
-        val title = this.selectFirst("a img")?.attr("alt")?.trim()
-        if (title.isNullOrBlank()) return null
-
-        val href = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("a img")?.attr("src"))
-
-        return newMovieSearchResponse(title, href, TvType.NSFW) {
-            this.posterUrl = posterUrl
-            this.posterHeaders = mainHeaders
         }
     }
 
@@ -193,8 +211,7 @@ class JavGuru : MainAPI() {
 
         for ((index, match) in iframeMatches.withIndex()) {
             try {
-                val sourceName =
-                    if (index < buttonNames.size) buttonNames[index] else "Source ${index + 1}"
+                val sourceName = if (index < buttonNames.size) buttonNames[index] else "Source ${index + 1}"
 
                 val encodedUrl = match.groupValues[1]
                 val decodedUrl = base64Decode(encodedUrl)
@@ -202,14 +219,10 @@ class JavGuru : MainAPI() {
                 val iframeRes = app.get(decodedUrl, mainHeaders)
                 val iframeHtml = iframeRes.text
 
-                val cfgBase =
-                    Regex("base:\\s*['\"]([^'\"]+)['\"]").find(iframeHtml)?.groupValues?.get(1)
-                val cfgRtype =
-                    Regex("rtype:\\s*['\"]([^'\"]+)['\"]").find(iframeHtml)?.groupValues?.get(1)
-                val cfgCid =
-                    Regex("cid:\\s*['\"]([^'\"]+)['\"]").find(iframeHtml)?.groupValues?.get(1)
-                val cfgKeysRaw =
-                    Regex("keys:\\s*\\[([^\\]]+)\\]").find(iframeHtml)?.groupValues?.get(1)
+                val cfgBase = Regex("base:\\s*['\"]([^'\"]+)['\"]").find(iframeHtml)?.groupValues?.get(1)
+                val cfgRtype = Regex("rtype:\\s*['\"]([^'\"]+)['\"]").find(iframeHtml)?.groupValues?.get(1)
+                val cfgCid = Regex("cid:\\s*['\"]([^'\"]+)['\"]").find(iframeHtml)?.groupValues?.get(1)
+                val cfgKeysRaw = Regex("keys:\\s*\\[([^\\]]+)\\]").find(iframeHtml)?.groupValues?.get(1)
 
                 if (cfgBase == null || cfgRtype == null || cfgCid == null || cfgKeysRaw == null) continue
 
